@@ -1,0 +1,210 @@
+ 
+\section{Problem Formulation}
+\label{sec:problem}
+
+\subsection{Inputs and Objective}
+
+We assume a fixed set of high-level safety requirements $P$, supplied by
+the developer before agent evolution. For example, $P$ may require that
+confidential information be accessible only to authorized parties.
+Our method does not infer these requirements from agent updates. Instead,
+it identifies additional executable obligations needed to preserve them
+as the agent's capabilities evolve.
+
+Let
+\[
+A_{t-1}=\langle M_{t-1},R_{t-1},T_{t-1},W_{t-1}\rangle
+\]
+denote the deployed agent, comprising its model, memory, tools, and
+workflow. An evolution step produces a candidate $\widetilde A_t$
+and a structured delta
+\[
+\Delta A_t=\operatorname{Diff}(A_{t-1},\widetilde A_t).
+\]
+The inputs to contract evolution are $P$, the current contract
+$C_{t-1}$, the candidate agent and its delta, and available environment
+evidence. The policy determines which consequences are safety-relevant,
+while the delta directs the analysis toward changes that may produce
+those consequences.
+
+\paragraph{Contract representation.}
+We represent contracts using the Expert Specification Language
+(ESL) introduced by RvLLM~\cite{zhang2025rvllm}.
+An ESL specification consists of variables, domain-specific predicates,
+and logical rules. Each predicate is associated with a natural-language
+description defining its intended semantics. For example,
+$\operatorname{Authorized}(r,f)$ may denote that recipient $r$ is
+authorized to access file $f$.
+Rules express relationships among predicates using a restricted
+implication form, with universal quantification implicit. For example,
+\[
+\operatorname{Share}(f,r)
+\Rightarrow
+\operatorname{Authorized}(r,f)
+\]
+requires that a file-sharing operation target an authorized recipient.
+
+ESL rules are interpreted against concrete execution contexts.
+Following RvLLM, relevant objects and predicate assignments are
+extracted from the available context, and rule variables are bound
+to these objects to obtain grounded propositions. Predicate truth
+values are determined from contextual evidence using three-valued
+semantics: $\{\mathsf{True},\mathsf{False},\mathsf{Unknown}\}$.
+The last value represents insufficient evidence under an open-world
+assumption, rather than a definite violation or satisfaction.
+This separates the declarative specification of an obligation
+from its context-dependent interpretation.
+ 
+\paragraph{Example: grounding ESL rules in agent execution.}
+Consider an agent assisting with document distribution. Its existing
+contract requires files to be sent only to authorized recipients:
+\[
+c_1:\quad
+\operatorname{Send}(f,r)
+\Rightarrow \operatorname{Authorized}(r,f).
+\]
+The predicates are defined in natural language:
+$\operatorname{Send}(f,r)$ means that the agent sends file $f$
+directly to recipient $r$, while $\operatorname{Authorized}(r,f)$
+means that $r$ is permitted to access $f$.
+
+Suppose the agent invokes
+\texttt{send\_file("report.pdf", "board@company.com")}.
+From the tool call and environment context, the interpreter
+identifies the file and recipient, binding
+$f=\texttt{report.pdf}$ and
+$r=\texttt{board@company.com}$.
+It then evaluates the grounded predicates. If the recipient
+is authorized, both predicates evaluate to $\mathsf{True}$,
+and the rule is satisfied. If authorization cannot be
+established, the corresponding predicate evaluates to
+$\mathsf{Unknown}$ rather than being assumed true.
+
+Now suppose the agent evolves by introducing a reusable
+\texttt{upload\_and\_share} tool that uploads files to a
+publicly accessible location and returns a link.
+When the agent uses this tool for a confidential report,
+the original rule $c_1$ does not constrain the upload:
+no direct $\operatorname{Send}(f,r)$ operation occurs.
+Consequently, the existing contract can remain satisfied
+even though the public link violates the fixed policy
+that confidential files must be accessible only to
+authorized parties.
+
+This execution provides a missing-obligation witness.
+Contract evolution can address the gap by introducing
+predicates for public accessibility and confidentiality,
+together with a new rule:
+\[
+c_2:\quad
+\operatorname{Upload}(f,l)
+\land \operatorname{Confidential}(f)
+\Rightarrow \neg\operatorname{Public}(l).
+\]
+Here, $\operatorname{Public}(l)$ is defined as ``location
+$l$ is accessible without recipient-specific authorization.''
+The new rule constrains the previously uncovered consequence
+without prohibiting legitimate uploads of public files. 
+
+
+\paragraph{Contract evolution.}
+A contract $C_t$ contains the ESL predicate definitions and logical
+rules applicable to the evolved agent. Clause identifiers and
+justifications are maintained as metadata. We distinguish contract
+evolution from changes to observation adapters and runtime
+instrumentation, denoted by $B_t$:
+\[
+\underbrace{C_{t-1}\rightarrow C_t}_{\text{new or refined obligations}}
+\qquad
+\underbrace{B_{t-1}\rightarrow B_t}_{\text{observation and enforcement}}.
+\]
+For example, adding instrumentation to observe a previously
+unavailable predicate changes $B_t$, whereas introducing a rule
+that constrains a newly exposed sharing operation changes $C_t$.
+Updating $B_t$ alone is therefore not contract co-evolution.
+
+Our objective is to evolve $C_{t-1}$ into $C_t$ such that the
+deployed agent $A_t$ satisfies the updated obligations while
+preserving its intended functionality. We write the desired
+assurance condition as
+\[
+A_t\models C_t,
+\]
+where satisfaction denotes the intended property over executions,
+rather than a claim that finite testing establishes universal
+correctness. In practice, bounded verification and runtime
+enforcement provide operational evidence for this condition.
+
+\subsection{What Constitutes a Missing Obligation?}
+
+A new operation without a matching clause is not automatically
+a contract gap. It may be irrelevant to $P$, unreachable for
+sensitive inputs, or already constrained by another rule.
+Conversely, an existing clause may syntactically match an
+operation while failing to constrain its policy-relevant effects.
+The central question is therefore whether the current contract
+permits behavior that violates a supplied safety requirement.
+
+Let $\operatorname{Exec}(\widetilde A_t)$ denote the executions
+possible under the candidate agent, and let
+$\operatorname{Harm}_p(z)$ indicate that execution $z$ violates
+a requirement $p\in P$. An ideal missing-obligation witness
+satisfies
+\[
+\begin{aligned}
+z &\in \operatorname{Exec}(\widetilde A_t),\\
+z &\models C_{t-1},\\
+\operatorname{Harm}_p(z) &\quad\text{for some }p\in P.
+\end{aligned}
+\]
+Here, $z\models C_{t-1}$ means that the execution satisfies
+all applicable existing contractual obligations. Thus, the
+witness demonstrates a discrepancy between what the current
+contract permits and what the fixed policy requires.
+
+To associate the finding with evolution, the execution must
+involve a changed operation, a changed guard, or an existing
+operation whose reachable inputs or effects are altered by
+$\Delta A_t$. This condition focuses analysis on consequences
+introduced or exposed by the update, without requiring proof
+that the same gap could not have existed previously.
+
+\paragraph{Distinguishing contract gaps from other failures.}
+Because ESL uses three-valued predicate evaluation, we distinguish
+three outcomes when analyzing a candidate execution.
+
+\begin{itemize}
+    \item \textbf{Compliance or enforcement failure.}
+    An existing applicable rule evaluates to
+    $\mathsf{False}$. The execution violates an existing
+    obligation, so adding a new rule is not necessarily required.
+
+    \item \textbf{Observation or grounding failure.}
+    An applicable rule evaluates to $\mathsf{Unknown}$
+    because relevant objects, bindings, or predicate evidence
+    cannot be established. The immediate problem is insufficient
+    evidence or instrumentation, rather than a confirmed
+    missing obligation.
+
+    \item \textbf{Missing obligation.}
+    All applicable existing rules evaluate to
+    $\mathsf{True}$, yet the execution violates a supplied
+    policy requirement. This provides evidence that the
+    current contract does not sufficiently constrain the
+    policy-relevant behavior.
+\end{itemize}
+
+A confirmed missing-obligation witness therefore requires
+definite satisfaction of existing applicable rules, rather
+than treating unknown evaluations as successful checks.
+When evidence is incomplete, the analysis may seek additional
+observations before classifying the behavior.
+
+Our method searches for such witnesses within an explicit
+analysis model and resource budget. A discovered witness
+demonstrates insufficiency of the current contract for the
+observed behavior, but failure to discover one does not
+establish completeness. The study evaluates whether the
+resulting clauses improve contract compliance and reduce
+independently assessed policy violations, while preserving
+the agent's ability to perform legitimate tasks. 

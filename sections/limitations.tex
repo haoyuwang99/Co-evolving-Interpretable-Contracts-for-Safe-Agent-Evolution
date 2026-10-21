@@ -1,0 +1,9 @@
+\section{Limitations}
+\paragraph{Analysis scope.}
+The method assumes supplied policies and reviewed observable vocabularies. Its dependency graphs and bounded probes can miss dynamic calls, hidden state, or unfamiliar consequences. Opaque model updates may provide little useful change evidence. These limits motivate the empirical measurements of missed and unresolved cases; the method does not claim exhaustive gap discovery.
+
+\paragraph{Interpretation and preservation.}
+Natural-language predicates and policy judgments can be misinterpreted. Generated clauses may be redundant, overly restrictive, or inconsistent with retained obligations. Solver checks depend on their encoded assumptions, and regression probes provide bounded evidence of preservation. The study therefore reviews edit justification and measures both safety and utility independently of the contract generator.
+
+\paragraph{Enforcement and generalization.}
+Prevention requires observation and intervention before the harmful effect. Checks after exposure provide detection only, and rejection may sacrifice useful evolution. Results on available Misevolution pathways may not generalize to longer deployments or less observable environments. We report setup effort, unavailable hooks, and cases outside the supplied policies. The motivating example is a development illustration and is excluded from claims about unseen-case generalization.

@@ -1,0 +1,259 @@
+\section{Method: Policy-Guided Contract Co-Evolution}
+\label{sec:method}
+
+\system takes the supplied policy, current contract, and candidate update as inputs. It extracts affected effects and dependencies, proposes and validates missing conditions, and produces justified ESL edits. Verification then determines whether to deploy, repair, restrict, or reject the update. The policy directs what to investigate; the delta directs where to begin.
+
+The procedure is defined independently of its eventual effectiveness. Section~\ref{sec:evaluation} tests whether the explored dependencies and validated edits are sufficient to improve safety in practice.
+
+\subsection{Affected effects and bounded dependencies}
+\label{sec:sites}
+
+\paragraph{Effect sites.}
+An effect site is an operation that can alter a policy-relevant resource or
+state, such as uploading a file, granting access, writing memory, or initiating
+a payment. We extract new and modified sites from changed code, configurations,
+tool schemas, and observed capability boundaries:
+\[
+ \mathcal V_t^\Delta=\operatorname{Sites}(\Delta A_t).
+\]
+We also record changes to guards, data flow, and workflow edges. These may
+make an old effect site reachable without adding a new operation.
+
+\paragraph{Dependencies on existing capabilities.}
+We maintain a finite graph \(\mathcal D_t=(N_t,L_t)\) representing available
+data-flow, control-flow, call, and shared-state dependencies in the candidate.
+For example, an upload produces a stored object, a link operation references
+that object, and an existing send operation consumes the link. Edge records
+identify their evidence source: code inspection, API summaries, configuration,
+or observed execution. Unknown calls and unresolved state dependencies are
+recorded as unknown rather than treated as absent.
+
+Starting from changed sites and changed edges, we collect relevant upstream
+resource sources and downstream effects through existing components.
+Exploration is limited by a declared budget \(\beta\), including dependency
+depth, analyzed nodes, and probe executions. For each policy \(p\), this yields
+\[
+ \mathcal S_t^p
+ =\operatorname{Slice}_{\beta}(\mathcal D_t,\Delta A_t,p).
+\]
+The slice contains both changed and unchanged sites connected to the update.
+Consequently, a contract check in an existing component remains visible,
+as does a new path that bypasses it. Policies guide relevance filtering using
+their resource types and effect summaries; uncertain relevance is retained
+where the budget permits. Truncated exploration remains explicit.
+
+\paragraph{Reachable resource classes.}
+Using policy-defined classes \(\mathcal K\), the analysis estimates
+\(\operatorname{MayReach}(k,v)\) for sites in the slice. Tool arguments,
+memory sources, guards, and workflow dependencies constrain these estimates.
+An unrestricted file parameter may admit confidential inputs even if the
+observed use involved only public posters. This is conservative possibility
+within the model, not proof that a concrete execution exists. Missing resource
+classification or opaque dependencies yield an unknown result.
+
+\subsection{Policy-specific observables}
+\label{sec:attributes}
+
+For each requirement \(p\), the analysis uses a declared harm predicate
+\(\operatorname{Harm}_p\), a finite observable vocabulary
+\(\mathcal A_p\), and rules or summaries relating those observables to harm.
+These policy-analysis inputs are developer-provided or proposed from \(P\) and reviewed at setup. They are fixed before held-out evaluation, with preparation effort recorded.
+
+For a disclosure policy, a suitable outcome-level predicate is
+\[
+ \operatorname{Harm}_{\mathrm{disc}}(q,f)
+ =
+ \operatorname{Confidential}(f)
+ \land\operatorname{CanAccess}(q,f)
+ \land\neg\operatorname{Authorized}(q,f).
+\]
+Relevant observables may include file sensitivity, intended recipients, link
+visibility, and effective access principals. A separate storage policy may
+require destination and provider-approval observations. These choices must
+be accompanied by a policy justification: persistence or a provider whitelist
+is not automatically a requirement of every confidentiality policy.
+
+For each site and relevant context, an effect record contains
+\[
+ e(v)=\langle
+ \text{operation},\text{resources},
+ \{a\mapsto(\text{value},\text{evidence})\}_{a\in\mathcal A_p}
+ \rangle.
+\]
+Evidence may come from static configuration, documented API behavior, or
+isolated execution. An unobserved attribute remains \(\bot\); it is not removed
+from the vocabulary, because doing so would hide the limitation.
+
+The vocabulary and dependency summaries define the analysis abstraction. Evaluation measures the consequences of omissions in this abstraction alongside the cost of constructing it.
+
+\subsection{Three tests for candidate contract gaps}
+\label{sec:coverage}
+
+The three tests below generate hypotheses over the affected policy slices.
+They are complementary and may report the same gap, which is deduplicated by policy,
+affected path, and missing condition.
+
+\paragraph{Test 1: no directly applicable clause.}
+For a site \(v\), retrieve potentially applicable clauses:
+\[
+ \operatorname{Trig}(v,C)
+ =
+ \{c\in C\mid
+ \operatorname{Antecedent}(c)
+ \text{ may apply to }v\text{ in its context}\}.
+\]
+Retrieval uses operation and resource summaries together with ESL predicate
+descriptions, rather than tool-name equality alone. If this set is empty,
+the site is a candidate gap only when it is relevant to a supplied policy.
+The analysis next checks constraints elsewhere in the slice. A dominating upstream guard, or a downstream check that still precedes the harmful effect, may already enforce the requirement.
+An uncertain semantic match is marked unknown.
+
+\paragraph{Test 2: an applicable clause leaves a necessary condition open.}
+For a policy-relevant site or path, identify the conditions that the available
+policy model requires and compare them with the joint constraints imposed
+by applicable clauses and enforced guards. An attribute-to-clause matrix can
+record supporting evidence, but an empty cell is only a prompt for analysis.
+Some attributes are irrelevant in the current context, and multiple clauses
+may jointly imply the required condition.
+
+The useful question is whether the modeled attributes admit an assignment
+that satisfies the current contract and path constraints while violating
+the policy. For example, an authorized recipient and a public link satisfy
+a recipient-only rule but can violate confidentiality. This supplies a
+candidate witness to validate, rather than merely a missing matrix entry.
+
+\paragraph{Test 3: a changed path bypasses an existing restriction.}
+We examine paths through the affected slice from relevant resource sources
+to policy-relevant effects. The search includes old capabilities connected
+through changed calls, control edges, or shared state. It asks whether a new
+or altered path can reach a harmful effect without the restriction enforced
+along previously considered paths.
+
+For example, confidential input can pass through a new upload-and-link
+operation and then an existing send operation. The send guard constrains who
+receives the link, but does not constrain who can access the stored object.
+The policy violation can arise at link creation, before sending occurs.
+A path explanation records these dependencies and the condition left
+unconstrained.
+
+The search traverses available dependencies and reasons about guards and shared state within \(\beta\). It records paths that remain unexplored or require unavailable evidence. Validation then checks the feasibility of the reported paths.
+
+\paragraph{Hypothesis records.}
+Each reported hypothesis has the form
+\[
+ g=\langle p,\rho,\psi,\eta\rangle,
+\]
+where \(p\) is the supplied policy, \(\rho\) is an affected site or dependency
+path, \(\psi\) is the proposed missing condition, and \(\eta\) is supporting
+evidence and outstanding uncertainty. The record is the input to validation; the reporting test alone does not justify an edit.
+
+\subsection{Validating missing-obligation hypotheses}
+\label{sec:validate}
+
+For each hypothesis, we seek a discriminating execution satisfying
+\[
+ \operatorname{Path}_{\rho}(z)
+ \land C_{t-1}(z)
+ \land\operatorname{Harm}_{p}(z).
+\]
+The validator first resolves the proposed path and relevant guards from available implementation and API evidence. It uses constraint solving for formalized attributes and isolated probes for concrete tool behavior; a language model may propose inputs or interpret natural-language predicates. A solver assignment is a witness within its encoded model. Concrete feasibility requires a realizable mapping to the candidate or successful replay. Each finding records which evidence supports it.
+
+Validation has three outcomes:
+\begin{itemize}
+\item \emph{Supported}: a feasible witness or a justified analysis result
+shows a policy violation permitted by the existing contract.
+\item \emph{Discharged within the model}: an existing restriction or
+infeasibility result rules out the proposed gap under explicit assumptions.
+\item \emph{Unresolved}: observations, feasibility evidence, or exploration
+budget are insufficient.
+\end{itemize}
+Failure to find a witness is not grounds for discarding a gap as safe.
+Unresolved findings are retained for additional analysis or conservative
+handling, and reported separately in evaluation.
+
+Where possible, validation also constructs a compliant comparison: a
+restricted link to the same confidential file, for example. The harmful
+execution establishes the need for a condition; the compliant execution helps
+detect an unnecessarily broad rule. After clause synthesis, both are replayed
+against the proposed contract.
+
+\subsection{Deriving and applying justified ESL edits}
+
+We reuse ESL's predicates with natural-language descriptions and first-order rules~\cite{zhang2025rvllm}. The formulas below present clause semantics, not tested parser input. Agent-state adapters and pre-effect interception are proposed extensions around RvLLM; temporal conditions require explicit observed-history predicates rather than assumed native temporal operators.
+
+Supported gaps produce obligation candidates
+\[
+ \mathcal O_t=\operatorname{Obligations}(P,G_t^{\mathrm{supported}}),
+ \qquad
+ D_t=\operatorname{Synthesize}_{\mathrm{ESL}}
+          (\mathcal O_t,C_{t-1}).
+\]
+Each edit records the policy requirement justifying it, the agent change
+exposing the gap, the affected path, and the validation evidence.
+This record allows a reviewer to trace each new obligation back to the supplied requirement and the behavior that exposed its absence.
+
+We use \emph{Add} for a new obligation and \emph{Refine} to strengthen an
+existing obligation while retaining its previously applicable restrictions.
+The diagnostic test does not mechanically determine the edit: the choice
+depends on whether the existing clause can express the condition without
+losing its original scope. For the sharing example,
+\[
+ \begin{aligned}
+ c_{\mathrm{link}}:\quad&
+ \operatorname{LinkFor}(l,f)\land\operatorname{Confidential}(f)\\
+ &\Rightarrow\operatorname{RestrictedAccess}(l,f)
+ \end{aligned}
+\]
+can be added while preserving the direct-recipient rule. This is a new
+requirement on link accessibility, not another binding of the old rule.
+
+Before accepting an edit, we check ESL well-formedness, policy justification,
+compatibility with retained rules, and its behavior on harmful and compliant
+probes. Predicate descriptions are versioned with their clauses; changing a
+shared predicate requires checking every clause that depends on it.
+Unrelated obligations remain unchanged. Unsupported policy restrictions are
+not added solely because an operation appears risky.
+
+For an accepted edit set,
+\[
+ C_t=\operatorname{Apply}(C_{t-1},D_t).
+\]
+Let \(\pi_{\mathrm{old}}\) project an execution onto the events and meanings used by the prior contract. Where this correspondence is defined, the desired preservation condition is
+\[
+ z\models C_t
+ \Rightarrow
+ \pi_{\mathrm{old}}(z)\models C_{t-1}.
+\]
+Logical checks establish this in supported fragments; regression probes provide
+bounded evidence elsewhere. The method does not automatically remove
+prohibitions or broaden exceptions. When no justified edit is required,
+\(D_t=\varnothing\).
+
+\subsection{Verification and deployment}
+\label{sec:gating}
+
+Let \(Z_t\) contain validation probes and retained regression cases. Instrumentation is updated separately to evaluate the accepted clauses over the candidate:
+\[
+ B_t=\operatorname{Instrument}(\widetilde A_t,C_t),\qquad
+ V_t=\operatorname{Verify}(\widetilde A_t,C_t,B_t,Z_t).
+\]
+Results are \emph{Pass}, \emph{Fail}, or \emph{Unknown}. An unresolved gap
+prevents an unqualified pass for its scope; a predefined controller decides
+whether to seek more evidence, restrict the relevant capability, or withhold
+the update. Failures trigger bounded repair or rejection. Accepted agent and
+contract versions are committed together. Rejection retains the previously deployed pair; proposed clauses remain pending. Repair that changes relevant effects triggers renewed analysis before commitment.
+
+Pre-commit probes run in isolation, and runtime guards must intervene before
+irreversible harmful effects. A check that observes disclosure only after it
+occurs supports detection, not prevention.
+
+\paragraph{Operational procedure.}
+For each update, the controller applies the following sequence:
+\begin{enumerate}[leftmargin=*]
+\item Extract changed effect sites, guards, and dependency edges; expand policy-relevant slices within \(\beta\).
+\item Build effect records and run the three gap tests; merge overlapping hypotheses.
+\item Validate each hypothesis and retain its supported, discharged, or unresolved status.
+\item Generate edits for supported gaps; check their policy justification, preservation, and behavior on harmful and compliant probes.
+\item Update instrumentation and verify the candidate. Deploy an accepted agent--contract pair, or repair, restrict, or reject according to the predefined controller.
+\end{enumerate}
+If no justified edit is found, verification proceeds under the current contract, with unresolved findings handled explicitly. The empirical study measures the benefit and failures of this complete procedure.

@@ -1,0 +1,68 @@
+\section{Evaluation Using the Existing Misevolution Suite}
+\label{sec:evaluation}
+
+The study tests the central hypothesis that supplied policies and change-guided dependency analysis identify useful missing obligations at a practical cost. We assess this hypothesis through observed gap discovery and defended task outcomes, rather than requiring exhaustive exploration of all capability interactions.
+
+\subsection{Study design}
+We will reuse existing Misevolution tasks, evolution procedures, and outcome evaluators~\cite{shao2025misevolve}. We do not propose a new benchmark or construct a ground-truth sequence of evolving contracts. Before execution, we will pin the repository revision and document which pathways support the required observations and intervention hooks. Unsupported pathways will be reported rather than silently approximated.
+
+The supplied policies, \(C_0\), harm predicates, observable vocabularies, dependency summaries, and analysis budgets will be versioned before held-out evaluation. Any developer effort or model assistance used to construct these inputs will be recorded. These are defense artifacts, not benchmark-provided annotations. They must come from allowed setup information and policy sources, without held-out outcomes or future tasks. The published motivating example has already informed this proposal and will be treated as an illustrative or development case, not evidence of unseen-case generalization.
+
+During a run, the defense may inspect the current update and previously available evidence. Internal probes use isolated environments and have separate cost accounting; they do not replace the benchmark's evaluation episodes. Vocabulary omissions discovered retrospectively will be documented without retrofitting the evaluated configuration.
+
+\subsection{Research questions}
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Prevention:} Does co-evolution reduce independently scored misbehavior after agent updates?
+\item \textbf{Benefit of clause edits:} Does it improve over fixed clauses with equally current instrumentation and matched verification resources?
+\item \textbf{Gap identification:} Which hypotheses are supported, discharged, or unresolved, and which policy-relevant failures are missed?
+\item \textbf{Utility and cost:} Does the method preserve useful evolution at acceptable analysis, verification, and intervention cost?
+\end{enumerate}
+
+\subsection{Comparisons}
+\label{sec:comparisons}
+\begin{table}[htbp]
+\caption{Planned comparisons. Verifying conditions share allowed evidence and matched checking and intervention resources.}
+\label{tab:conditions}
+\centering\small
+\begin{tabular}{p{0.27\linewidth}p{0.63\linewidth}}
+\toprule
+Condition & Treatment\\
+\midrule
+Original evolution & Run the released evolution procedure without the proposed defense.\\
+Fixed clauses & Retain \(C_0\), refreshing observations and bindings at every update.\\
+Broad static contract & Specify general outcome-level constraints before test access; adapt their instrumentation.\\
+Full regeneration & Regenerate the contract from the same policy and allowed evidence after each update.\\
+\system & Add or refine justified clauses while checking preservation.\\
+Frozen evolution & Retain the initial agent as a diagnostic control for foregone improvement.\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The decisive contrast is against fixed clauses with adaptive instrumentation. All verifying conditions use the same base models, evidence interfaces, probe and repair budgets, and runtime controller. Analysis overhead is reported separately, alongside budget-matched comparisons. Full regeneration receives the same policy-justification and preservation checks so that unrestricted edits do not create an artificial advantage.
+
+A broad static contract is a substantive alternative: a rule over effective access can cover future mechanisms without naming their tools. We therefore make no claim that novel sites or bypasses are structurally impossible to cover in advance. The comparison tests when incremental elaboration offers an advantage over specifying general constraints in advance, including the setup effort required by each approach.
+
+\subsection{Safety, utility, and contribution of edits}
+\label{sec:outcomes}
+The primary safety outcome is the existing evaluator's misbehavior rate on a common task denominator, reported by pathway. Task success and retained capability improvement are reported alongside safety. Accepted, repaired, restricted, rejected, and unknown updates are counted separately. Rejection is not counted as successful safe completion: where feasible, the retained agent executes the original task and receives the same outcome scoring.
+
+We report conditional misbehavior among accepted updates, intervention frequency, rollback, latency, tokens, probe executions, and setup effort. Matched initial states and paired seeds support comparisons; uncertainty is estimated at the independent-run level rather than treating correlated steps as independent samples.
+
+To examine what an edit contributes, held-out recorded executions are replayed against the prior and evolved contracts using identical observations. We record whether a new clause detects a violation missed by the old contract, whether it duplicates an existing obligation, and whether it rejects compliant behavior. These are diagnostic comparisons, not causal proof of prevention. Prevention is measured in defended executions, including whether intervention preceded the harmful effect. Retrospective findings are not fed back into the evaluated defense.
+
+\subsection{Gap quality and unresolved cases}
+Gap hypotheses are deduplicated by policy, path, and missing condition. We record all tests that identify each hypothesis rather than forcing overlapping findings into a single tier. For each test, report candidate counts, validation outcomes, evidence strength, accepted edits, and unnecessary restrictions identified by independent review of allowed policies and execution evidence. Agreement of probes is not treated as a safety certificate.
+
+Gap precision is the fraction of reviewed supported findings confirmed to describe a policy violation permitted by the prior contract. The denominator and unreviewable cases are reported explicitly. We also measure empirical discovery coverage over an independently reviewed set \(F\) of observed, in-policy failure cases that satisfy their corresponding prior contracts:
+\[
+ \operatorname{DiscoveryCoverage}
+ =\frac{|\{f\in F:\text{a supported gap relevant to }f\text{ was found before exposure}\}|}{|F|}.
+\]
+The numerator uses only findings produced from evidence available before the effect; retrospective review cannot create a successful detection. Cases already prohibited by the prior contract are compliance failures and are reported separately. This measure quantifies coverage of observed cases, not recall over all possible missing obligations. An empty denominator is reported as not applicable.
+
+For missed or unresolved cases, the analysis records absent effect observations, missing dependencies, omitted policy observables, semantic interpretation errors, infeasible witness candidates, and exhausted budgets. Failures outside supplied \(P\) are reported separately. These categories can overlap. A runtime guard checking an incomplete contract is not presumed to catch the residual.
+
+\subsection{Ablations}
+We disable clause edits while retaining observation and checking resources; remove change-based prioritization; remove dependency expansion to analyze only changed sites; and disable each gap test in turn. We compare the structured observable vocabulary with model-proposed gaps under the same policy, evidence, and budget. These controls test whether the proposed structure improves useful gap detection rather than merely increasing computation.
+
+Budget sweeps vary dependency depth and probe count, reporting safety, utility, unresolved findings, and cost together. Preservation checks are ablated only in isolated evaluation to measure unintended weakening. Finally, verification-only reporting is compared with active intervention to separate detecting a violation from preventing it. Results will be reported even when fixed contracts suffice or no useful edits are found.

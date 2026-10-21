@@ -1,0 +1,18 @@
+\section{Scope across Evolution Pathways}
+\label{sec:pathways}
+Different evolution pathways provide different evidence for the same procedure. The study reports findings and outcomes separately by pathway to identify where clause evolution is useful.
+
+\paragraph{Tool and workflow evolution.}
+Changed implementations, tool schemas, configurations, and workflow edges provide direct seeds for dependency analysis. A new upload operation may introduce access decisions; a changed branch may expose an existing operation to confidential inputs. These changes justify clause evolution only when existing obligations leave a policy-relevant condition open. Otherwise, rebinding or compliance checking is sufficient.
+
+\paragraph{Memory evolution.}
+A changed memory may alter tool selection, arguments, or decisions at an existing site. The slice can connect the written record to retrieval and subsequent actions when these dependencies are observable. For example, a customer-request condition on refunds is justified only if the supplied policy requires it. If that condition is already specified, unsafe refunds are compliance failures. Interpreting how free-form memory influences behavior may require probes and can remain unresolved.
+
+\paragraph{Model evolution.}
+A weight update need not expose a structural change. Available training trajectories or a recipe can suggest which existing effects to probe, but neither frequency nor an omitted reward attribute proves a newly reachable behavior or a missing clause. These signals are optional prioritization heuristics, not evidence that the analysis has recovered the model's changed semantics. Observed behavioral differences may seed further dependency analysis and reveal a previously latent gap.
+
+For opaque updates without useful change evidence, the method falls back to revalidation under the current contract and available runtime 
+checks. This is a scope limitation, not a negative finding about contract sufficiency. Model-only cases with no justified edits are useful controls for whether additional checking, rather than specification evolution, explains any improvement.
+
+\paragraph{Existing gaps.}
+An unchanged site can be revisited when it lies on a dependency path affected by an update. The method may therefore expose a pre-existing gap whose relevance increases after evolution. It does not audit all initial capabilities: gaps outside explored slices can remain undetected. Results must distinguish newly introduced gaps, previously latent gaps reached by the analysis, and ordinary violations of existing clauses.

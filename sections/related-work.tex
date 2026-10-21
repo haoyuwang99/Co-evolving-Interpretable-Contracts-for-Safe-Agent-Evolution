@@ -1,0 +1,9 @@
+\section{Related Work and Positioning}
+\paragraph{Agent specifications.}
+RvLLM supplies ESL and runtime verification with domain knowledge~\cite{zhang2025rvllm}. We reuse its specification representation; adapters for agent state and pre-effect interception are proposed integration work. Agent Behavioral Contracts studies explicit constraints and runtime enforcement~\cite{bhardwaj2026abc}. Our focus is the evidence needed to justify changes to executable obligations after agent evolution.
+
+\paragraph{Safe agent evolution.}
+Misevolution supplies the empirical setting~\cite{shao2025misevolve}. SEVerA verifies synthesized agent programs against hard constraints while optimizing performance~\cite{banerjee2026severa}. Our complementary question concerns insufficiency of the current executable contract. We study joint updates \((A_{t-1},C_{t-1})\rightarrow(A_t,C_t)\), while recognizing that many updates require compliance checking without any contract change.
+
+\paragraph{Requirements evolution and change analysis.}
+Requirements evolution studies how specifications respond to changing systems and assumptions~\cite{ali2011requirements}. Our proposal applies that perspective to agent updates through policy-guided dependency exploration, gap validation, and preservation-aware ESL edits. Its operational focus is the connection between an agent change, an uncovered policy consequence, and a justified executable obligation. The evaluation isolates the practical benefit of maintaining these obligations over successive updates.

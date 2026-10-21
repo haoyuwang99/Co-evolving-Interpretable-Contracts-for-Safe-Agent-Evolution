@@ -1,0 +1,65 @@
+\section{Motivating Example: Tool Creation and Reuse}
+\label{sec:example}
+
+\paragraph{Policy supplied before evolution.}
+The developer supplies \(P=\{p_{\mathrm{disc}}\}\): confidential files must be accessible only to authorized parties. This requirement is fixed. The analysis uses the agent update to identify additional executable obligations needed to enforce it, not to infer a new policy.
+
+\paragraph{Existing benchmark example.}
+The Misevolution repository describes an agent that creates \texttt{upload\_and\_share\_files} for distributing posters. Later it reuses the public-link tool for a confidential financial report intended for the board~\cite{misevolutionrepo}. The policy, clauses, and analysis below are our illustrative formalization of this published scenario, not benchmark annotations or a measured defense result.
+
+\paragraph{Initial contract.}
+Suppose the initial agent supports direct delivery and checks recipient authorization:
+\[
+ C_0=\{c_{\mathrm{send}}\},\qquad
+ c_{\mathrm{send}}:\quad
+ \operatorname{Send}(f,r)\Rightarrow\operatorname{Authorized}(r,f).
+\]
+Here \(\operatorname{Send}\) describes delivery of a file or its access link to a recipient. The clause constrains the intended recipient; it does not constrain everyone who can obtain the file. Assume direct delivery initially has no other access path. The new tool introduces storage and link creation, so this assumption must be revisited.
+
+\paragraph{Step 1: inspect the update and its dependencies.}
+The tool adds \(\operatorname{Upload}(f,d)\) and \(\operatorname{LinkFor}(l,f)\). The dependency slice connects a file source, the upload, link creation, and the existing send operation. It includes the old recipient guard as well as the new effects. A general file parameter with no sensitivity restriction admits confidential inputs in the analysis model; this is a possibility to validate, not proof that a particular task will invoke it.
+
+\paragraph{Step 2: compare consequences with the policy.}
+For \(p_{\mathrm{disc}}\), the relevant observations are file sensitivity, intended recipients, link visibility, and effective access. Suppose implementation inspection shows public-link creation. The existing send guard can authorize board members while leaving access by other parties unconstrained. An authorized recipient therefore does not establish compliance with the disclosure policy. Empty trigger sets at the new operations generate a hypothesis, but the analysis must also check for guards elsewhere that could prevent confidential input or restrict access before exposure.
+
+\paragraph{Step 3: validate the missing condition.}
+An isolated probe uses a synthetic confidential file and an authorized test recipient. Suppose it confirms that the candidate creates a publicly accessible link, with no other guard blocking exposure. This behavior satisfies \(c_{\mathrm{send}}\), yet permits access by an unauthorized principal. It supports a missing link-access condition. If effective access cannot be established, the finding remains unresolved; failure to demonstrate exposure does not establish safety.
+
+The existing recipient check ensures that the link is sent to an authorized person, but does not restrict who can access the linked file. To identify this gap, the analysis need not predict a specific future task; it must establish that the new tool can accept confidential files and expose them through public links.
+
+\paragraph{Step 4: evolve the contract.}
+The supported gap justifies a new clause:
+\[
+ \begin{aligned}
+ c_{\mathrm{link}}:\quad&
+ \operatorname{LinkFor}(l,f)\land\operatorname{Confidential}(f)\\
+ &\Rightarrow\operatorname{RestrictedAccess}(l,f),\\
+ C_1={}&C_0\cup\{c_{\mathrm{link}}\}.
+ \end{aligned}
+\]
+The predicate \(\operatorname{RestrictedAccess}(l,f)\) means that access through \(l\) is limited to principals authorized for \(f\). Its natural-language description and the logical clause form part of the ESL contract. The edit records \(p_{\mathrm{disc}}\), the new link operation, the source-to-access path, and the probe evidence as its justification. The direct-recipient obligation remains in force.
+
+The specification has now changed: \(C_1\) rejects a public link to a confidential file even when \(C_0\) accepts its intended recipient. A restricted link to that same file provides a compliant comparison for detecting over-restriction. Public posters remain shareable if no other supplied requirement prohibits it.
+
+\paragraph{Step 5: check and intervene before exposure.}
+The candidate fails the new clause and must be repaired to establish restricted access before publication, have the affected capability disabled, or be rejected. Runtime interception must occur before the file becomes publicly accessible, potentially at upload if that operation immediately publishes it. Checking the link after disclosure is detection, not prevention. These are proposed interventions, not experimental results.
+
+\paragraph{A separately justified storage extension.}
+If \(P\) also requires approved storage providers, a feasible upload to an unapproved provider can justify:
+\[
+ c_{\mathrm{store}}:\quad
+ \operatorname{Upload}(f,d)\Rightarrow\operatorname{ApprovedStorage}(d,f).
+\]
+That edit requires evidence that the candidate can use such a destination while satisfying the old contract. An upload alone does not justify a provider whitelist.
+
+The example illustrates how the policy and update narrow exploration: confidentiality selects the consequence, link creation identifies the changed effect, and its dependencies expose the gap in recipient-only checking. How often this procedure finds useful obligations across less transparent cases is the subject of our empirical evaluation.
+
+% information sharing
+
+% information control.
+
+% only allow to get not post, old api no strict description.
+
+% local knowledge graph for different users
+
+% for instance/ reasoning 

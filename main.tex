@@ -1,0 +1,84 @@
+%% ---------------------------------------------------------------------------
+%% Co-evolving Interpretable Contracts for Safe Agent Evolution
+%%
+%% OOPSLA / PACMPL submission format (ACM acmart, acmsmall).
+%% Requires acmart.cls (TeX Live: `texlive-publishers`; available by default on
+%% Overleaf via the ACM Proceedings template). Build with:
+%%     latexmk -pdf main.tex
+%%
+%% Options in use:
+%%   acmsmall  - the single-column journal layout PACMPL/OOPSLA requires
+%%   review    - line numbers, for reviewer reference
+%%   anonymous - suppresses the author block for double-blind submission
+%%   screen    - colored hyperlinks; drop for print
+%% For a non-anonymous draft or camera-ready, delete `anonymous` (and `review`).
+%% ---------------------------------------------------------------------------
+
+\documentclass[acmsmall,review,anonymous,screen]{acmart}
+
+%% --- Journal metadata -----------------------------------------------------
+%% Replace volume/number/article/DOI with the values supplied on acceptance.
+% \acmJournal{PACMPL}
+% \acmVolume{1}
+% \acmNumber{OOPSLA}
+% \acmArticle{1}
+% \acmYear{2026}
+% \acmMonth{1}
+% \setcopyright{none}          % submission; switch to acmlicensed later
+% \acmDOI{}
+
+%% PACMPL house citation style.
+% \citestyle{acmauthoryear}
+
+%% --- Packages -------------------------------------------------------------
+%% acmart already provides amsmath, amssymb, booktabs, hyperref and microtype;
+%% the first three are re-requested without options, which is a no-op if they
+%% are loaded and keeps the sources compilable against older acmart releases.
+%% Do NOT add geometry, hyperref, natbib or titlesec: acmart configures them
+%% and loading them again breaks the layout or the reference format.
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xspace}
+
+\input{macros}
+
+\begin{document}
+
+%% --- Front matter ---------------------------------------------------------
+\title{Policy guided Contracts Co-evolution for Safe Agent Self-Improvement }
+
+\author{Haoyu Wang}
+\affiliation{%
+  \institution{TODO: institution}
+  \city{TODO: city}
+  \country{TODO: country}
+}
+\email{tjuwhyse@gmail.com}
+\begin{abstract}
+
+Self-evolving agents can acquire effects that their executable safety contracts do not constrain. We propose policy-guided contract co-evolution: extending the contract as the agent changes while keeping supplied high-level safety requirements fixed. The central challenge is identifying missing obligations without anticipating every interaction between old and new capabilities. Our method uses the agent delta to seed bounded dependency analysis and the supplied policy to select relevant consequences. Three tests propose gaps involving clause applicability, unconstrained safety conditions, and paths that bypass existing restrictions. Validation seeks behavior permitted by the current contract but prohibited by the policy; unsupported cases remain unresolved. Supported gaps justify added or refined clauses in RvLLM's Expert Specification Language, followed by preservation checks, candidate verification, and pre-effect enforcement. We distinguish genuine clause evolution from updated instrumentation and ordinary compliance repair. The method does not claim complete gap detection or universal safety. We present a study design using the existing Misevolution suite to test whether co-evolution prevents misbehavior beyond fixed contracts with current instrumentation while retaining useful agent improvement.
+\end{abstract}
+\maketitle
+
+\input{sections/introduction}
+\input{sections/motivating-example}
+\input{sections/problem-formulation}
+\input{sections/method}
+\input{sections/scope}
+\input{sections/evaluation}
+\input{sections/related-work}
+\input{sections/limitations}
+\input{sections/conclusion}
+
+%% --- References -----------------------------------------------------------
+%% ACM bibliography style.
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
+%% --- References -----------------------------------------------------------
+%% acmart selects ACM-Reference-Format itself; do not set a bibliography style.
+\bibliography{references}
+
+\end{document}
